@@ -120,6 +120,9 @@ function setRunningBadge(running) {
   $('btnClearImages').disabled = !!running;
   if ($('btnAddGroup')) $('btnAddGroup').disabled = !!running;
   if ($('groupLinkInput')) $('groupLinkInput').disabled = !!running;
+  document.querySelectorAll('.target-delete').forEach((btn) => {
+    btn.disabled = !!running;
+  });
 }
 
 function estimateImagesBytes(images) {
@@ -346,9 +349,12 @@ function renderTargets() {
     box.appendChild(empty);
     return;
   }
+  const running = $('runBadge') && $('runBadge').classList.contains('run');
   targets.forEach((row) => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'target-row';
     const label = document.createElement('label');
-    label.className = 'target-row';
+    label.className = 'target-main';
     const boxInput = document.createElement('input');
     boxInput.type = 'checkbox';
     boxInput.checked = !!row.selected;
@@ -359,6 +365,7 @@ function renderTargets() {
       persistTargetsSoon();
     });
     const text = document.createElement('span');
+    text.className = 'target-text';
     const name = document.createElement('span');
     name.className = 'name';
     const id = (H.extractGroupId && H.extractGroupId(row.url)) || row.url;
@@ -370,8 +377,29 @@ function renderTargets() {
     text.appendChild(url);
     label.appendChild(boxInput);
     label.appendChild(text);
-    box.appendChild(label);
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'target-delete';
+    del.title = 'ลบกลุ่ม';
+    del.setAttribute('aria-label', 'ลบกลุ่ม');
+    del.disabled = !!running;
+    del.innerHTML =
+      '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+    del.addEventListener('click', () => removeTarget(row.url));
+    rowEl.appendChild(label);
+    rowEl.appendChild(del);
+    box.appendChild(rowEl);
   });
+}
+
+function removeTarget(url) {
+  const key = groupKeyOf(url);
+  targets = targets.filter((t) => groupKeyOf(t.url) !== key);
+  syncTextFromTargets();
+  renderTargets();
+  markDirty('groups');
+  const groupsText = ($('groups') && $('groups').value) || '';
+  chrome.storage.local.set({ groupsText: groupsText, groupTargets: targets }).catch(() => {});
 }
 
 function upsertTarget(url, name, selected) {

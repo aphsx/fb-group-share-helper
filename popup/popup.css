@@ -382,12 +382,44 @@ button.tiny {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 8px;
+}
+
+.target-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
   cursor: pointer;
+}
+
+.target-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .target-row input {
   margin-top: 3px;
   flex: 0 0 auto;
+}
+
+.target-delete {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+}
+
+.target-delete:hover:not(:disabled) {
+  background: #fdecea;
+  color: var(--fail);
 }
 
 .target-row .name {

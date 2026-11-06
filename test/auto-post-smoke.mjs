@@ -93,6 +93,8 @@ assert(popupJs.includes('applyStoredField'), 'popup skips overwriting dirty fiel
 assert(popupJs.includes('getCurrentGroup'), 'popup asks the tab for the open group');
 assert(!popupJs.includes('adoptOpenGroup'), 'popup does not add the open group by itself');
 assert(popupJs.includes('resolveGroupName'), 'popup looks up a group name from a link');
+assert(popupJs.includes('removeTarget'), 'popup can delete a target group');
+assert(popupJs.includes('target-delete'), 'popup shows a delete control on each group');
 
 const mock = readFileSync(join(root, 'test/mock-share.html'), 'utf8');
 assert(mock.includes('strategyPost_newInGroup_mock'), 'mock has Auto Post simulator');
