@@ -15,13 +15,19 @@
 
 body {
   margin: 0;
-  padding: 14px 14px 20px;
   width: 100%;
   min-height: 100vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   background: var(--bg);
   color: var(--text);
   font-size: 13px;
+}
+
+.sheet {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 14px 8px;
 }
 
 header h1 {
@@ -94,10 +100,27 @@ textarea, input[type="number"], input[type="url"] {
   color: var(--text);
 }
 
-.actions {
+.dock {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px 12px;
+  background: #fff;
+  border-top: 1px solid var(--border);
+}
+
+.dock-start {
+  width: 100%;
+  padding: 12px 8px;
+  font-size: 15px;
+}
+
+.dock-secondary {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 button {

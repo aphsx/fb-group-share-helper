@@ -7,17 +7,38 @@
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
+  <div class="sheet">
   <header>
-    <h1 id="pageTitle">แชร์โพสต์ → กลุ่ม</h1>
-    <p class="sub">FB Group Share Helper · best-effort · ส่วนตัว/ศึกษา</p>
+    <h1 id="pageTitle">โพสต์ใหม่ → กลุ่ม</h1>
+    <p class="sub">เลือกเนื้อหาและกลุ่ม แล้วกดเริ่มด้านล่าง</p>
   </header>
 
   <section class="mode-section">
-    <label>โหมด</label>
     <div class="mode-toggle" role="group" aria-label="เลือกโหมด">
-      <button type="button" id="modeShare" class="mode-btn active" data-mode="share">แชร์โพสต์</button>
-      <button type="button" id="modePost" class="mode-btn" data-mode="post">โพสต์ใหม่</button>
+      <button type="button" id="modePost" class="mode-btn active" data-mode="post">โพสต์ใหม่</button>
+      <button type="button" id="modeShare" class="mode-btn" data-mode="share">แชร์โพสต์</button>
     </div>
+  </section>
+
+  <section id="postBodySection">
+    <label for="postBody">ข้อความโพสต์ <span class="hint-inline">(หรือแนบรูปอย่างน้อย 1 ใบ)</span></label>
+    <textarea id="postBody" rows="4" placeholder="ข้อความที่จะโพสต์ใหม่ในแต่ละกลุ่ม…"></textarea>
+  </section>
+
+  <section id="imagesSection">
+    <label for="imageInput">รูปภาพ (สูงสุด 5 ใบ) — เลือกครั้งเดียว ใช้กับทุกกลุ่ม</label>
+    <input type="file" id="imageInput" accept="image/*" multiple />
+    <p id="imageChosen" class="image-hint">ยังไม่ได้เลือกรูป</p>
+    <div id="imagePreview" class="image-preview" aria-live="polite"></div>
+    <div class="image-actions">
+      <button type="button" id="btnClearImages" class="secondary tiny">ล้างรูป</button>
+      <span id="imageHint" class="image-hint"></span>
+    </div>
+  </section>
+
+  <section id="captionSection" hidden>
+    <label for="caption">ข้อความกำกับ (ถ้ามี)</label>
+    <textarea id="caption" rows="3" placeholder="ข้อความสั้นๆ ที่จะแนบตอนแชร์…"></textarea>
   </section>
 
   <section>
@@ -31,27 +52,6 @@
     <textarea id="groups" hidden></textarea>
   </section>
 
-  <section id="captionSection">
-    <label for="caption">ข้อความกำกับ (ถ้ามี)</label>
-    <textarea id="caption" rows="3" placeholder="ข้อความสั้นๆ ที่จะแนบตอนแชร์…"></textarea>
-  </section>
-
-  <section id="postBodySection" hidden>
-    <label for="postBody">ข้อความโพสต์ <span class="hint-inline">(หรือแนบรูปอย่างน้อย 1 ใบ)</span></label>
-    <textarea id="postBody" rows="5" placeholder="ข้อความที่จะโพสต์ใหม่ในแต่ละกลุ่ม…"></textarea>
-  </section>
-
-  <section id="imagesSection" hidden>
-    <label for="imageInput">รูปภาพ (สูงสุด 5 ใบ) — เลือกครั้งเดียว ใช้กับทุกกลุ่ม</label>
-    <input type="file" id="imageInput" accept="image/*" multiple />
-    <p id="imageChosen" class="image-hint">ยังไม่ได้เลือกรูป</p>
-    <div id="imagePreview" class="image-preview" aria-live="polite"></div>
-    <div class="image-actions">
-      <button type="button" id="btnClearImages" class="secondary tiny">ล้างรูป</button>
-      <span id="imageHint" class="image-hint"></span>
-    </div>
-  </section>
-
   <section class="row">
     <div>
       <label for="delayMin">หน่วงต่ำสุด (วินาที)</label>
@@ -61,12 +61,6 @@
       <label for="delayMax">หน่วงสูงสุด (วินาที)</label>
       <input type="number" id="delayMax" min="5" max="3600" value="120" />
     </div>
-  </section>
-
-  <section class="actions">
-    <button type="button" id="btnSave" class="secondary">บันทึกรายการ</button>
-    <button type="button" id="btnStart" class="primary">เริ่ม</button>
-    <button type="button" id="btnStop" class="danger">หยุด</button>
   </section>
 
   <section class="run-board" aria-live="polite">
@@ -92,8 +86,17 @@
   </section>
 
   <footer>
-    <small id="footerHint">เปิดโพสต์บน facebook.com ก่อนกดเริ่ม · เคารพ Meta ToS · selector อาจพังได้</small>
+    <small id="footerHint">เปิด facebook.com (ล็อกอินแล้ว) · ใส่ข้อความและ/หรือรูป · เลือกกลุ่มแล้วกดเริ่ม · เคารพ Meta ToS</small>
   </footer>
+  </div>
+
+  <section class="dock">
+    <button type="button" id="btnStart" class="primary dock-start">เริ่ม</button>
+    <div class="dock-secondary">
+      <button type="button" id="btnSave" class="secondary">บันทึกรายการ</button>
+      <button type="button" id="btnStop" class="danger">หยุด</button>
+    </div>
+  </section>
 
   <script src="../lib/dom-helpers.js"></script>
   <script src="popup.js"></script>

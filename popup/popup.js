@@ -8,7 +8,7 @@ const WARN_TOTAL_BYTES = 4 * 1024 * 1024;
 /** Soft per-file warn before encoding (raw file size). */
 const WARN_FILE_BYTES = 2 * 1024 * 1024;
 
-let currentMode = 'share';
+let currentMode = 'post';
 /** In-memory selected images for post mode: [{name,type,dataUrl}] */
 let selectedImages = [];
 /** Unsaved edits must survive the 2s refresh that reloads storage into the form. */
