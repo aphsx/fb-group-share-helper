@@ -56,6 +56,8 @@ assert(!/labels = \[[^\]]*['"]share['"]/.test(helpersSrc), 'findPostButton label
 assert(helpersSrc.includes('isAllowedPostButtonLabel'), 'helpers use isAllowedPostButtonLabel');
 assert(helpersSrc.includes('isShareDialog'), 'helpers define isShareDialog');
 assert(helpersSrc.includes('dialogHasComposerCandidate'), 'helpers prefer the dialog that contains the composer');
+assert(helpersSrc.includes('clientX'), 'clicks use the button center, not a fixed screen point');
+assert(helpersSrc.includes('intersectsViewport'), 'clicks prefer the button that is on screen');
 assert(helpersSrc.includes('Share now'), 'helpers mention Share now exclusion');
 
 const content = readFileSync(join(root, 'content/content.js'), 'utf8');
@@ -63,6 +65,8 @@ assert(content.includes('dismissShareDialogIfOpen'), 'content dismisses Share di
 assert(content.includes('openCreatePostComposer'), 'content opens Create post');
 assert(content.includes('เจอไดอะล็อก Share'), 'Thai Share-dialog fail message');
 assert(content.includes('v1.2.10'), 'content logs v1.2.10');
+assert(!content.includes('postBtn.click()'), 'Post is clicked once, at the button');
+assert(content.includes('r.width >= 36'), 'photo preview check does not require a large thumbnail');
 assert(
   content.includes('ไม่นับสำเร็จ') || content.includes('ยืนยันไม่ได้ว่าโพสต์ขึ้น'),
   'no false success on ambiguous click'

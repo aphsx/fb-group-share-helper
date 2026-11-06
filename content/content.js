@@ -264,14 +264,14 @@
   function composingDialogOpen() {
     const d = getCreatePostDialog();
     if (!d || !d.getBoundingClientRect) return false;
+    try {
+      if (d.querySelector('[contenteditable="true"], textarea, [data-lexical-editor="true"]')) return true;
+    } catch (_) {}
     let h = 0;
     try {
       h = d.getBoundingClientRect().height;
     } catch (_) {}
-    if (h < 140) return false;
-    try {
-      if (d.querySelector('[contenteditable="true"], textarea, [data-lexical-editor="true"]')) return true;
-    } catch (_) {}
+    // Title strip is short and has no editor. A short window must not look "already closed".
     return h > 280;
   }
 
@@ -407,9 +407,6 @@
 
     const caption = String(options.caption || '');
     H.clickEl(postBtn);
-    try {
-      postBtn.click();
-    } catch (_) {}
 
     let closedStreak = 0;
     for (let i = 0; i < 40; i++) {
@@ -685,7 +682,7 @@
     const imgs = dialog.querySelectorAll('img');
     for (let i = 0; i < imgs.length; i++) {
       const r = imgs[i].getBoundingClientRect();
-      if (r.width >= 80 && r.height >= 80) return true;
+      if (r.width >= 36 && r.height >= 36) return true;
     }
     return false;
   }
