@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FB Group Share Helper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <h1 id="pageTitle">แชร์โพสต์ → กลุ่ม</h1>
+    <p class="sub">FB Group Share Helper · best-effort · ส่วนตัว/ศึกษา</p>
+  </header>
+
+  <section class="mode-section">
+    <label>โหมด</label>
+    <div class="mode-toggle" role="group" aria-label="เลือกโหมด">
+      <button type="button" id="modeShare" class="mode-btn active" data-mode="share">แชร์โพสต์</button>
+      <button type="button" id="modePost" class="mode-btn" data-mode="post">โพสต์ใหม่</button>
+    </div>
+  </section>
+
+  <section>
+    <label id="groupsLabel" for="groupLinkInput">เพิ่มกลุ่มเป้าหมาย</label>
+    <div class="add-row">
+      <input type="url" id="groupLinkInput" placeholder="https://www.facebook.com/groups/…" />
+      <button type="button" id="btnAddGroup" class="primary">เพิ่ม</button>
+    </div>
+    <p id="addGroupStatus" class="current-group-hint"></p>
+    <div id="targetGroups" class="target-groups"></div>
+    <textarea id="groups" hidden></textarea>
+  </section>
+
+  <section id="captionSection">
+    <label for="caption">ข้อความกำกับ (ถ้ามี)</label>
+    <textarea id="caption" rows="3" placeholder="ข้อความสั้นๆ ที่จะแนบตอนแชร์…"></textarea>
+  </section>
+
+  <section id="postBodySection" hidden>
+    <label for="postBody">ข้อความโพสต์ <span class="hint-inline">(หรือแนบรูปอย่างน้อย 1 ใบ)</span></label>
+    <textarea id="postBody" rows="5" placeholder="ข้อความที่จะโพสต์ใหม่ในแต่ละกลุ่ม…"></textarea>
+  </section>
+
+  <section id="imagesSection" hidden>
+    <label for="imageInput">รูปภาพ (สูงสุด 5 ใบ) — เลือกครั้งเดียว ใช้กับทุกกลุ่ม</label>
+    <input type="file" id="imageInput" accept="image/*" multiple />
+    <p id="imageChosen" class="image-hint">ยังไม่ได้เลือกรูป</p>
+    <div id="imagePreview" class="image-preview" aria-live="polite"></div>
+    <div class="image-actions">
+      <button type="button" id="btnClearImages" class="secondary tiny">ล้างรูป</button>
+      <span id="imageHint" class="image-hint"></span>
+    </div>
+  </section>
+
+  <section class="row">
+    <div>
+      <label for="delayMin">หน่วงต่ำสุด (วินาที)</label>
+      <input type="number" id="delayMin" min="5" max="3600" value="60" />
+    </div>
+    <div>
+      <label for="delayMax">หน่วงสูงสุด (วินาที)</label>
+      <input type="number" id="delayMax" min="5" max="3600" value="120" />
+    </div>
+  </section>
+
+  <section class="actions">
+    <button type="button" id="btnSave" class="secondary">บันทึกรายการ</button>
+    <button type="button" id="btnStart" class="primary">เริ่ม</button>
+    <button type="button" id="btnStop" class="danger">หยุด</button>
+  </section>
+
+  <section class="run-board" aria-live="polite">
+    <div class="run-head">
+      <span id="runProgressLabel">ยังไม่เริ่ม</span>
+      <span id="runBadge" class="badge">หยุด</span>
+    </div>
+    <div class="progress-track" aria-hidden="true"><div id="runProgressBar" class="progress-bar"></div></div>
+    <div class="stats">
+      <div><b id="statTotal">0</b><span>ทั้งหมด</span></div>
+      <div><b id="statOk">0</b><span>สำเร็จ</span></div>
+      <div><b id="statFail">0</b><span>ล้มเหลว</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="log-head">
+      <label>รายการกลุ่ม</label>
+    </div>
+    <ul id="queueList" class="queue"></ul>
+    <label>บันทึก</label>
+    <pre id="log" class="log" aria-live="polite"></pre>
+  </section>
+
+  <footer>
+    <small id="footerHint">เปิดโพสต์บน facebook.com ก่อนกดเริ่ม · เคารพ Meta ToS · selector อาจพังได้</small>
+  </footer>
+
+  <script src="../lib/dom-helpers.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

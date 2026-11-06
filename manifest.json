@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "FB Group Share Helper",
+  "version": "1.2.10",
+  "description": "Educational helper: share an open Facebook post to groups, or auto-post text + photos into groups one at a time with randomized delays. Best-effort UI automation; selectors may break.",
+  "permissions": [
+    "storage",
+    "alarms",
+    "scripting",
+    "sidePanel",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://*.facebook.com/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "action": {
+    "default_title": "FB Group Share Helper",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.facebook.com/*"
+      ],
+      "js": [
+        "lib/dom-helpers.js",
+        "content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

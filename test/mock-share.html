@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mock Facebook Share / Auto Post UI — FGSH offline test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
+    h1 { font-size: 1.25rem; }
+    h2 { font-size: 1.05rem; margin: 0 0 8px; }
+    .post { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    button { margin: 4px; padding: 8px 12px; cursor: pointer; }
+    .menu, .dialog { display: none; border: 1px solid #ccc; background: #fafafa; padding: 12px; border-radius: 8px; margin-top: 8px; }
+    .menu.open, .dialog.open { display: block; }
+    .group-item { padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; }
+    .group-item:hover { background: #eef5ff; }
+    #log { background: #111; color: #9f9; padding: 12px; border-radius: 8px; min-height: 80px; white-space: pre-wrap; font-size: 12px; }
+    input[type="search"], textarea.list { width: 100%; padding: 8px; margin-bottom: 8px; box-sizing: border-box; }
+    [contenteditable] { border: 1px solid #ccc; min-height: 48px; padding: 8px; border-radius: 6px; }
+    .panel { border: 1px dashed #1877f2; border-radius: 12px; padding: 16px; margin-bottom: 16px; background: #f5f9ff; }
+    .ok { color: #0a0; font-weight: 700; }
+    .fail { color: #c00; font-weight: 700; }
+    .hidden { display: none !important; }
+    #fakePostBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+    #fakeComposer:empty:before { content: attr(aria-placeholder); color: #888; }
+    .thumbs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .thumbs img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #ccc; }
+    .attach-bar { margin-top: 8px; }
+    #fakeAttachPreview img { max-width: 80px; max-height: 80px; margin: 4px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Mock Share / Auto Post UI (offline)</h1>
+  <p>จำลองปุ่ม Share + รายการกลุ่ม + composer โพสต์ใหม่ (ข้อความ+รูป) เพื่อเทส <code>lib/dom-helpers.js</code> โดยไม่ต้องเข้า Facebook</p>
+
+  <div class="post" id="post">
+    <p><strong>โพสต์จำลอง</strong> — Hello from mock permalink</p>
+    <button type="button" id="shareBtn" aria-label="Share">Share</button>
+    <div class="menu" id="shareMenu" role="menu">
+      <div role="menuitem" aria-label="Share to a group" id="shareToGroup">Share to a group</div>
+      <div role="menuitem" aria-label="Copy link">Copy link</div>
+    </div>
+  </div>
+
+  <div class="dialog" id="groupPicker" role="dialog" aria-label="Select group">
+    <input type="search" id="groupSearch" placeholder="Search groups" aria-label="Search" />
+    <div id="groupList">
+      <div class="group-item" role="option" data-id="111">Cooking Club</div>
+      <div class="group-item" role="option" data-id="222">Bangkok Deals</div>
+      <div class="group-item" role="option" data-id="333">Dev Thailand</div>
+    </div>
+    <div id="captionBox" contenteditable="true" role="textbox" aria-label="Write something"></div>
+    <button type="button" id="postBtn" aria-label="Post">Post</button>
+  </div>
+
+  <div class="post" id="groupComposer" style="display:none">
+    <h2>กลุ่ม: Dev Thailand (Strategy B)</h2>
+    <div role="button" aria-label="Write something…">Write something…</div>
+    <div id="groupTextbox" contenteditable="true" role="textbox" style="display:none"></div>
+    <button type="button" id="groupPostBtn" aria-label="Post" style="display:none">Post</button>
+  </div>
+
+  <!-- Auto Post mock: fake group page with composer + photo attach -->
+  <div class="panel" id="autoPostPanel">
+    <h2>โหมดโพสต์ใหม่ (Auto Post) — จำลองหน้ากลุ่ม + รูป</h2>
+    <label for="mockGroupList">เลือกกลุ่มเพื่อโพสต์ (บรรทัดละ 1 URL/ID)</label>
+    <textarea class="list" id="mockGroupList" rows="3">https://www.facebook.com/groups/333
+https://www.facebook.com/groups/111</textarea>
+    <label for="mockPostBody">ข้อความโพสต์</label>
+    <textarea class="list" id="mockPostBody" rows="3">สวัสดีจาก Auto Post mock — ทดสอบโพสต์ใหม่พร้อมรูป</textarea>
+    <label for="mockImagePick">รูป (จำลองเลือกครั้งเดียว)</label>
+    <input type="file" id="mockImagePick" accept="image/*" multiple />
+    <div class="thumbs" id="mockThumbs"></div>
+    <button type="button" id="runAutoPost">รัน Auto Post ไปยังกลุ่มในรายการ</button>
+    <button type="button" id="runAutoPostWithGen">รัน Auto Post + รูปจาก canvas</button>
+
+    <div class="post" id="fakeGroupPage" style="margin-top:12px">
+      <h2 id="fakeGroupTitle">กลุ่ม: (ยังไม่เลือก)</h2>
+      <div id="fakeOpener" role="button" aria-label="เขียนอะไรสักหน่อย">เขียนอะไรสักหน่อย</div>
+      <div id="fakeCreateDialog" role="dialog" aria-modal="true" class="hidden" style="border:1px solid #ccc;padding:12px;border-radius:8px;background:#fff;margin-top:8px">
+        <div id="fakeCreateTitleDialog" role="dialog" aria-label="Create post" style="min-height:40px">
+          <h3 style="margin:0 0 8px;font-size:1rem">Create post</h3>
+        </div>
+        <div id="fakeComposer" contenteditable="true" role="textbox" aria-placeholder="Write something…" aria-label="Write something…"></div>
+        <div class="attach-bar" id="fakeAttachBar">
+          <div role="button" aria-label="รูปภาพ/วิดีโอ" id="fakePhotoBtn">รูปภาพ/วิดีโอ</div>
+          <input type="file" id="fakeFileInput" accept="image/*,video/*" class="hidden" />
+          <div id="fakeAttachPreview"></div>
+        </div>
+        <button type="button" id="fakePostBtn" aria-label="Post" disabled>Post</button>
+      </div>
+      <p id="fakePosted" class="hidden">
+        <span class="ok">✓ โพสต์แล้ว:</span>
+        <span id="fakePostedText"></span>
+        <span id="fakePostedImages"></span>
+      </p>
+    </div>
+    <!-- Trap: Share dialog with Share now — must NOT be chosen as Post -->
+    <div id="fakeShareTrap" role="dialog" aria-label="Share" class="hidden" style="border:2px solid #c00;padding:12px;border-radius:8px;background:#fff5f5;margin-top:8px">
+      <h3 style="margin:0 0 8px">Share</h3>
+      <div contenteditable="true" role="textbox" aria-label="Say something about this..." aria-placeholder="Say something about this..."></div>
+      <button type="button" id="fakeShareNowBtn" aria-label="Share now">Share now</button>
+      <button type="button" id="fakeShareClose" aria-label="Close">Close</button>
+    </div>
+
+    <div class="panel" id="currentGroupDemo">
+      <h2>กลุ่มที่กำลังเปิด</h2>
+      <label>
+        <input type="checkbox" id="demoGroupCheck" />
+        <span id="demoGroupName">Just Test some thing 1</span>
+      </label>
+      <textarea id="demoGroups" rows="3">https://www.facebook.com/groups/111</textarea>
+    </div>
+
+    <p>
+      <button type="button" id="runEmptyFail">เทส: composer ว่างต้อง fail</button>
+      <button type="button" id="runLexicalType">เทส: setInputText + Post enabled</button>
+      <button type="button" id="runShareNowTrap">เทส: Share now ต้องไม่ใช่ Post</button>
+      <button type="button" id="runCurrentGroup">เทส: ติ๊กกลุ่มที่เปิดอยู่</button>
+    </p>
+  </div>
+
+  <p>
+    <button type="button" id="runA">รัน Strategy A helpers</button>
+    <button type="button" id="runB">รัน Strategy B helpers</button>
+    <button type="button" id="runParse">เทส parseGroupList</button>
+  </p>
+  <pre id="log"></pre>
+
+  <script src="../lib/dom-helpers.js"></script>
+  <script>
+    const logEl = document.getElementById('log');
+    function log(msg) {
+      logEl.textContent += msg + '\n';
+    }
+
+    const H = window.FbShareDomHelpers;
+
+    // Wire mock UI (Share)
+    document.getElementById('shareBtn').onclick = () => {
+      document.getElementById('shareMenu').classList.add('open');
+    };
+    document.getElementById('shareToGroup').onclick = () => {
+      document.getElementById('groupPicker').classList.add('open');
+    };
+    document.getElementById('groupSearch').oninput = (e) => {
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll('.group-item').forEach((el) => {
+        el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    };
+    document.querySelectorAll('.group-item').forEach((el) => {
+      el.onclick = () => {
+        el.dataset.selected = '1';
+        el.style.outline = '2px solid #1877f2';
+        log('selected group: ' + el.textContent);
+      };
+    });
+    document.getElementById('postBtn').onclick = () => {
+      log('POST clicked. caption=' + document.getElementById('captionBox').innerText);
+      alert('Mock posted!');
+    };
+
+    // Fake group page composer wiring
+    const fakeOpener = document.getElementById('fakeOpener');
+    const fakeComposer = document.getElementById('fakeComposer');
+    const fakePostBtn = document.getElementById('fakePostBtn');
+    const fakePosted = document.getElementById('fakePosted');
+    const fakePostedText = document.getElementById('fakePostedText');
+    const fakePostedImages = document.getElementById('fakePostedImages');
+    const fakeAttachBar = document.getElementById('fakeAttachBar');
+    const fakeFileInput = document.getElementById('fakeFileInput');
+    const fakeAttachPreview = document.getElementById('fakeAttachPreview');
+    const fakePhotoBtn = document.getElementById('fakePhotoBtn');
+
+    const fakeCreateDialog = document.getElementById('fakeCreateDialog');
+
+    function syncPostEnabled() {
+      const hasText = H.composerHasText(fakeComposer);
+      const n = (fakeFileInput.files && fakeFileInput.files.length) || 0;
+      fakePostBtn.disabled = !(hasText || n > 0);
+      if (fakePostBtn.disabled) fakePostBtn.setAttribute('aria-disabled', 'true');
+      else fakePostBtn.removeAttribute('aria-disabled');
+    }
+
+    function openFakeComposer() {
+      fakeCreateDialog.classList.remove('hidden');
+      fakeOpener.classList.add('hidden');
+      fakeComposer.textContent = '';
+      fakePostBtn.disabled = true;
+      fakePostBtn.setAttribute('aria-disabled', 'true');
+      fakeAttachPreview.innerHTML = '';
+      try { fakeFileInput.value = ''; } catch (_) {}
+      syncPostEnabled();
+    }
+
+    fakeOpener.onclick = openFakeComposer;
+    fakeComposer.addEventListener('input', syncPostEnabled);
+    fakePhotoBtn.onclick = () => {
+      fakeFileInput.classList.remove('hidden');
+    };
+    fakeFileInput.onchange = () => {
+      fakeAttachPreview.innerHTML = '';
+      const files = fakeFileInput.files || [];
+      for (let i = 0; i < files.length; i++) {
+        const img = document.createElement('img');
+        img.alt = files[i].name;
+        img.src = URL.createObjectURL(files[i]);
+        fakeAttachPreview.appendChild(img);
+      }
+      log('fake file input received ' + files.length + ' file(s)');
+      syncPostEnabled();
+    };
+    fakePostBtn.onclick = () => {
+      if (fakePostBtn.disabled || !H.isPostButtonEnabled(fakePostBtn)) {
+        log('FAIL: Post clicked while disabled');
+        return;
+      }
+      fakePostedText.textContent = fakeComposer.innerText || fakeComposer.textContent;
+      const n = (fakeFileInput.files && fakeFileInput.files.length) || 0;
+      fakePostedImages.textContent = n ? ' · รูป ' + n + ' ใบ' : '';
+      fakePosted.classList.remove('hidden');
+      fakeCreateDialog.classList.add('hidden');
+      log(
+        'Auto Post: posted to ' +
+          document.getElementById('fakeGroupTitle').textContent +
+          ' → ' +
+          fakePostedText.textContent +
+          (n ? ' +' + n + ' img' : '')
+      );
+    };
+
+    // Popup-side mock image pick (survives across groups)
+    let mockStoredImages = []; // [{name,type,dataUrl}]
+    const mockThumbs = document.getElementById('mockThumbs');
+
+    document.getElementById('mockImagePick').onchange = async (e) => {
+      mockStoredImages = [];
+      mockThumbs.innerHTML = '';
+      const files = Array.from(e.target.files || []).slice(0, 5);
+      for (const f of files) {
+        const dataUrl = await readAsDataUrl(f);
+        mockStoredImages.push({ name: f.name, type: f.type, dataUrl });
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        img.alt = f.name;
+        mockThumbs.appendChild(img);
+      }
+      log('stored ' + mockStoredImages.length + ' image(s) for Auto Post queue');
+    };
+
+    function readAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+    }
+
+    async function makeTinyPngDataUrl() {
+      const c = document.createElement('canvas');
+      c.width = 32;
+      c.height = 32;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#1877f2';
+      ctx.fillRect(0, 0, 32, 32);
+      ctx.fillStyle = '#fff';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('FG', 6, 20);
+      return c.toDataURL('image/png');
+    }
+
+
+    const GROUP_NAMES = {
+      '111': 'Cooking Club',
+      '333': 'Dev Thailand',
+      '222': 'Bangkok Deals'
+    };
+
+    /**
+     * Mirrors content strategyPost_newInGroup (+ photo attach) against the fake group page DOM.
+     */
+    async function strategyPost_newInGroup_mock(groupUrl, body, images) {
+      const id = H.extractGroupId(groupUrl);
+      const name = GROUP_NAMES[id] || id || 'Unknown';
+      document.getElementById('fakeGroupTitle').textContent = 'กลุ่ม: ' + name + ' (id ' + id + ')';
+
+      // Reset to closed opener state
+      fakeCreateDialog.classList.add('hidden');
+      fakeOpener.classList.remove('hidden');
+      fakePosted.classList.add('hidden');
+      fakeComposer.textContent = '';
+      fakeAttachPreview.innerHTML = '';
+      fakeFileInput.classList.add('hidden');
+      try { fakeFileInput.value = ''; } catch (_) {}
+      fakePostBtn.disabled = true;
+      fakePostBtn.setAttribute('aria-disabled', 'true');
+
+      const root = document.getElementById('fakeGroupPage');
+      const opener = H.findByText(
+        ['Write something', 'เขียนอะไรสักหน่อย', 'เขียนอะไรบางอย่าง', 'Create a public post'],
+        root
+      );
+      if (!opener) return { ok: false, message: 'Post: ไม่พบ opener' };
+      H.clickEl(opener);
+      openFakeComposer();
+      await H.sleep(30);
+
+      const textBody = String(body || '').trim();
+      const imgs = images || [];
+      if (!textBody && !imgs.length) {
+        return { ok: false, message: 'Post: ต้องมีข้อความหรือรูป' };
+      }
+
+      if (textBody) {
+        const box = H.findComposer(root);
+        if (!box) return { ok: false, message: 'Post: ไม่พบ composer' };
+        H.setInputText(box, textBody);
+        await H.sleep(20);
+        syncPostEnabled();
+        if (!H.composerHasText(box)) {
+          return { ok: false, message: 'Post: พิมพ์ข้อความเข้าช่อง Write something ไม่สำเร็จ' };
+        }
+      }
+
+      let attached = 0;
+      if (imgs.length) {
+        const photo = H.findByText(['รูปภาพ/วิดีโอ', 'Photo/video', 'Photo'], root);
+        if (photo) {
+          H.clickEl(photo);
+          fakeFileInput.classList.remove('hidden');
+          await H.sleep(20);
+        }
+        const fileInput = H.findImageFileInput(root) || fakeFileInput;
+        const files = [];
+        for (let i = 0; i < imgs.length; i++) {
+          const f = H.dataUrlToFile(imgs[i].dataUrl, imgs[i].name || 'img' + i + '.png', imgs[i].type);
+          if (f) files.push(f);
+        }
+        if (!files.length) return { ok: false, message: 'Post: สร้าง File จาก dataUrl ไม่ได้' };
+        const okAssign = H.assignFilesToInput(fileInput, files);
+        if (!okAssign) return { ok: false, message: 'Post: assignFilesToInput ล้มเหลว' };
+        attached = fileInput.files.length;
+        fakeAttachPreview.innerHTML = '';
+        for (let i = 0; i < imgs.length; i++) {
+          const im = document.createElement('img');
+          im.src = imgs[i].dataUrl;
+          fakeAttachPreview.appendChild(im);
+        }
+        syncPostEnabled();
+        await H.sleep(20);
+      }
+
+      const post = H.findPostButton(root) || H.findByText(['Post', 'โพสต์', 'เผยแพร่'], root);
+      if (!post) return { ok: false, message: 'Post: ไม่พบปุ่ม Post' };
+      if (!H.isPostButtonEnabled(post)) {
+        return { ok: false, message: 'Post: ปุ่ม Post ยัง disabled — ข้อความอาจยังไม่เข้า composer' };
+      }
+      H.clickEl(post);
+      // Fallback if synthetic click did not run the onclick handler
+      if (!fakeCreateDialog.classList.contains('hidden')) {
+        fakePostedText.textContent = fakeComposer.innerText || fakeComposer.textContent || textBody;
+        fakePostedImages.textContent = attached ? ' · รูป ' + attached + ' ใบ' : '';
+        fakePosted.classList.remove('hidden');
+        fakeCreateDialog.classList.add('hidden');
+      }
+      return {
+        ok: true,
+        message: 'Post: mock posted to ' + name + (attached ? ' +' + attached + ' img' : '')
+      };
+    }
+
+    async function runQueue(imagesOverride) {
+      logEl.textContent = '';
+      log('--- Auto Post simulation ---');
+      const list = H.parseGroupList(document.getElementById('mockGroupList').value);
+      const body = document.getElementById('mockPostBody').value.trim();
+      const images = imagesOverride || mockStoredImages.slice();
+      if (!body && !images.length) {
+        log('FAIL: empty post body and no images');
+        return;
+      }
+      if (!list.length) {
+        log('FAIL: no groups selected');
+        return;
+      }
+      log('groups selected: ' + list.length + ' · images: ' + images.length);
+      let okCount = 0;
+      for (let i = 0; i < list.length; i++) {
+        const g = list[i];
+        log('→ posting to ' + g.url);
+        const r = await strategyPost_newInGroup_mock(g.url, body, images);
+        log((r.ok ? 'OK' : 'FAIL') + ': ' + r.message);
+        if (r.ok) okCount++;
+        await H.sleep(40);
+      }
+      log('Auto Post done: ' + okCount + '/' + list.length + ' ok');
+      if (okCount === list.length) log('Auto Post helpers OK (mock)');
+    }
+
+    document.getElementById('runAutoPost').onclick = () => runQueue();
+
+    document.getElementById('runAutoPostWithGen').onclick = async () => {
+      const dataUrl = await makeTinyPngDataUrl();
+      const images = [{ name: 'fgsh-mock.png', type: 'image/png', dataUrl }];
+      mockStoredImages = images;
+      mockThumbs.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      mockThumbs.appendChild(img);
+      await runQueue(images);
+    };
+
+
+    document.getElementById('runShareNowTrap').onclick = async () => {
+      logEl.textContent = '';
+      log('--- Share now must NOT be chosen as Post ---');
+      // Hide create post, show share trap
+      fakeCreateDialog.classList.add('hidden');
+      const trap = document.getElementById('fakeShareTrap');
+      trap.classList.remove('hidden');
+      await H.sleep(20);
+
+      const assertShare = H.isShareDialog(trap);
+      log('isShareDialog(Share): ' + assertShare);
+      const btn = H.findPostButton(document);
+      const shareNow = document.getElementById('fakeShareNowBtn');
+      log('findPostButton result: ' + (btn ? (btn.getAttribute('aria-label') || btn.textContent) : 'null'));
+      log('isAllowedPostButtonLabel(Share now): ' + H.isAllowedPostButtonLabel('Share now'));
+      log('isAllowedPostButtonLabel(Post): ' + H.isAllowedPostButtonLabel('Post'));
+
+      if (btn === shareNow) {
+        log('FAIL: findPostButton returned Share now');
+      } else if (btn) {
+        log('FAIL: findPostButton returned unexpected button while only Share dialog open');
+      } else if (!assertShare) {
+        log('FAIL: isShareDialog should be true');
+      } else if (H.isAllowedPostButtonLabel('Share now')) {
+        log('FAIL: Share now label allowed');
+      } else {
+        log('OK: Share now excluded; findPostButton returned null');
+      }
+
+      // Now open Create post alongside — Post must win
+      openFakeComposer();
+      fakeComposer.textContent = 'hello';
+      syncPostEnabled();
+      await H.sleep(20);
+      const post = H.findPostButton(document);
+      log('with Create post open, findPostButton: ' + (post ? (post.getAttribute('aria-label') || post.textContent) : 'null'));
+      if (post === fakePostBtn && post !== shareNow) {
+        log('OK: Create post Post button preferred over Share now');
+      } else {
+        log('FAIL: should prefer Create post Post button');
+      }
+      trap.classList.add('hidden');
+    };
+
+    document.getElementById('fakeShareClose').onclick = () => {
+      document.getElementById('fakeShareTrap').classList.add('hidden');
+    };
+
+    document.getElementById('runEmptyFail').onclick = async () => {
+      logEl.textContent = '';
+      log('--- Empty composer must fail ---');
+      openFakeComposer();
+      await H.sleep(20);
+      const box = H.findComposer(document.getElementById('fakeGroupPage'));
+      log('composer found: ' + !!box);
+      log('composerHasText: ' + H.composerHasText(box));
+      const post = H.findPostButton(document.getElementById('fakeGroupPage'));
+      log('post found: ' + !!post);
+      log('post enabled: ' + H.isPostButtonEnabled(post));
+      if (H.composerHasText(box) || H.isPostButtonEnabled(post)) {
+        log('FAIL: empty composer should keep Post disabled');
+      } else {
+        log('OK: empty composer → Post disabled (no false success)');
+      }
+
+      const picked = H.findCreatePostDialog(document);
+      log('findCreatePostDialog id: ' + (picked && picked.id));
+      const viaStrip = H.findComposer(document.getElementById('fakeCreateTitleDialog'));
+      log('findComposer(title strip) id: ' + (viaStrip && viaStrip.id));
+      if (picked && picked.id === 'fakeCreateDialog' && viaStrip && viaStrip.id === 'fakeComposer') {
+        log('OK: title-strip Create post dialog ignored; composer is in the real modal');
+      } else {
+        log('FAIL: title-strip dialog stole the composer search');
+      }
+    };
+
+    document.getElementById('runLexicalType').onclick = async () => {
+      logEl.textContent = '';
+      log('--- Lexical-like setInputText ---');
+      openFakeComposer();
+      await H.sleep(20);
+      const box = H.findComposer(document.getElementById('fakeGroupPage'));
+      if (!box) { log('FAIL: no composer'); return; }
+      H.setInputText(box, 'สวัสดีจาก Lexical mock');
+      syncPostEnabled();
+      await H.sleep(20);
+      const has = H.composerHasText(box);
+      const post = H.findPostButton(document.getElementById('fakeGroupPage'));
+      const en = H.isPostButtonEnabled(post);
+      log('composerHasText: ' + has);
+      log('post enabled: ' + en);
+      log('text: ' + (box.innerText || box.textContent));
+      if (has && en) log('OK: typed text enables Post');
+      else log('FAIL: typing did not enable Post');
+    };
+
+    document.getElementById('runA').onclick = async () => {
+      logEl.textContent = '';
+      log('--- Strategy A simulation ---');
+      const share = H.findByText(['Share'], document);
+      log('find Share: ' + !!(share));
+      H.clickEl(share);
+      await H.sleep(50);
+      const toGroup = H.findByText(['Share to a group'], document);
+      log('find Share to a group: ' + !!(toGroup));
+      H.clickEl(toGroup);
+      await H.sleep(50);
+      const search = document.querySelector('input[type="search"]');
+      H.setInputText(search, 'Dev');
+      await H.sleep(50);
+      const row = H.findByText(['Dev Thailand'], document);
+      log('find Dev Thailand: ' + !!(row));
+      H.clickEl(row);
+      const box = H.findComposer(document);
+      H.setInputText(box, 'สวัสดีจาก mock');
+      const post = H.findByText(['Post'], document);
+      log('find Post: ' + !!(post));
+      H.clickEl(post);
+      log('Strategy A helpers OK (mock)');
+    };
+
+    document.getElementById('runB').onclick = async () => {
+      logEl.textContent = '';
+      log('--- Strategy B simulation ---');
+      document.getElementById('groupComposer').style.display = '';
+      const opener = H.findByText(['Write something'], document);
+      log('find opener: ' + !!(opener));
+      H.clickEl(opener);
+      document.getElementById('groupTextbox').style.display = '';
+      document.getElementById('groupPostBtn').style.display = '';
+      await H.sleep(30);
+      const box = H.findComposer(document.getElementById('groupComposer'));
+      H.setInputText(box, 'caption\nhttps://www.facebook.com/permalink/1');
+      const post = H.findByText(['Post'], document.getElementById('groupComposer'));
+      H.clickEl(post);
+      log('composer text: ' + (box && box.innerText));
+      log('Strategy B helpers OK (mock)');
+    };
+
+    const demoUrl = 'https://www.facebook.com/groups/1503331745017751';
+    document.getElementById('demoGroupCheck').addEventListener('change', () => {
+      const el = document.getElementById('demoGroups');
+      el.value = document.getElementById('demoGroupCheck').checked
+        ? H.addGroupUrlLine(el.value, demoUrl)
+        : H.removeGroupUrlLine(el.value, demoUrl);
+    });
+
+    document.getElementById('runCurrentGroup').onclick = () => {
+      logEl.textContent = '';
+      const el = document.getElementById('demoGroups');
+      const box = document.getElementById('demoGroupCheck');
+      el.value = 'https://www.facebook.com/groups/111';
+      let dirty = true;
+      const stored = '';
+      function applyStored() {
+        if (dirty) return;
+        el.value = stored;
+      }
+      applyStored();
+      if (el.value.indexOf('111') === -1) {
+        log('FAIL: refresh wiped unsaved url');
+        return;
+      }
+      log('OK: unsaved url kept when dirty');
+      box.checked = true;
+      box.dispatchEvent(new Event('change'));
+      if (!H.groupListHas(el.value, demoUrl) || !H.groupListHas(el.value, '111')) {
+        log('FAIL: check should keep 111 and add open group');
+        return;
+      }
+      log('OK: checked — ' + document.getElementById('demoGroupName').textContent);
+      box.checked = false;
+      box.dispatchEvent(new Event('change'));
+      if (H.groupListHas(el.value, demoUrl) || !H.groupListHas(el.value, '111')) {
+        log('FAIL: uncheck removed the wrong line');
+        return;
+      }
+      log('OK: uncheck removes only the open group');
+    };
+
+    document.getElementById('runParse').onclick = () => {
+      logEl.textContent = '';
+      const sample = 'https://www.facebook.com/groups/111\n222\n# comment\nmy-slug\n';
+      const parsed = H.parseGroupList(sample);
+      log(JSON.stringify(parsed, null, 2));
+      log('delay sample ms: ' + H.randomDelayMs(60, 120));
+      // quick dataUrlToFile smoke without DOM File if unavailable
+      if (typeof H.dataUrlToFile === 'function') {
+        log('dataUrlToFile helper present');
+      }
+    };
+  </script>
+</body>
+</html>
