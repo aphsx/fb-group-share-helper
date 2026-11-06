@@ -19,12 +19,8 @@ const fieldDirty = {
   delayMin: false,
   delayMax: false
 };
-/** Group open in the active Facebook tab: { onGroup, name, url } */
+/** Group open in the active Facebook tab, used only to name a link the user adds. */
 let currentGroup = { onGroup: false, name: '', url: '' };
-/** Last group seen on a tab, kept after the user leaves that page. */
-let rememberedGroup = { name: '', url: '' };
-/** Group keys the user unchecked, so a later refresh does not put them back. */
-const dismissedGroupKeys = Object.create(null);
 
 const H = self.FbShareDomHelpers || {};
 
@@ -321,7 +317,6 @@ async function resolveGroupName(url) {
   if (currentGroup.onGroup && groupKeyOf(currentGroup.url) === key && currentGroup.name) {
     return currentGroup.name;
   }
-  if (groupKeyOf(rememberedGroup.url) === key && rememberedGroup.name) return rememberedGroup.name;
   try {
     const res = await fetch(url, { credentials: 'include' });
     const html = await res.text();
@@ -358,12 +353,7 @@ function renderTargets() {
     boxInput.type = 'checkbox';
     boxInput.checked = !!row.selected;
     boxInput.addEventListener('change', () => {
-      const key = groupKeyOf(row.url);
       row.selected = boxInput.checked;
-      if (key) {
-        if (row.selected) delete dismissedGroupKeys[key];
-        else dismissedGroupKeys[key] = true;
-      }
       syncTextFromTargets();
       markDirty('groups');
       persistTargetsSoon();
@@ -453,8 +443,6 @@ async function addTargetFromInput() {
   if (status) status.textContent = 'กำลังอ่านชื่อกลุ่ม…';
   $('btnAddGroup').disabled = true;
   const name = await resolveGroupName(url);
-  const key = groupKeyOf(url);
-  if (key) delete dismissedGroupKeys[key];
   upsertTarget(url, name, true);
   $('groupLinkInput').value = '';
   if (status) {
@@ -463,28 +451,6 @@ async function addTargetFromInput() {
       : 'เพิ่มลิงก์แล้ว แต่อ่านชื่อจาก Facebook ไม่ได้ ยังติ๊กโพสต์ได้';
   }
   $('btnAddGroup').disabled = !!($('runBadge') && $('runBadge').classList.contains('run'));
-}
-
-/**
- * Put the open group into the list without a click.
- * Share and auto-post both read this same list, then open the group even if the tab has left it.
- */
-function adoptOpenGroup() {
-  if (!currentGroup.onGroup || !currentGroup.url) return;
-  rememberedGroup = { name: currentGroup.name || '', url: currentGroup.url };
-  if ($('runBadge') && $('runBadge').classList.contains('run')) return;
-  const key = groupKeyOf(currentGroup.url);
-  if (key && dismissedGroupKeys[key]) return;
-  const existing = targets.find((t) => groupKeyOf(t.url) === key);
-  if (existing) {
-    if (currentGroup.name && existing.name !== currentGroup.name) {
-      existing.name = currentGroup.name;
-      renderTargets();
-      persistTargetsSoon();
-    }
-    return;
-  }
-  upsertTarget(currentGroup.url, currentGroup.name || '', true);
 }
 
 let persistGroupsTimer = null;
@@ -585,7 +551,6 @@ async function refreshCurrentGroup() {
   } catch (_) {
     currentGroup = empty;
   }
-  adoptOpenGroup();
 }
 
 function collectPayload() {

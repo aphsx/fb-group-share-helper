@@ -91,7 +91,7 @@ assert(popupJs.includes('readFileAsDataUrl') || popupJs.includes('readAsDataURL'
 assert(popupJs.includes('fieldDirty'), 'popup keeps unsaved field edits');
 assert(popupJs.includes('applyStoredField'), 'popup skips overwriting dirty fields');
 assert(popupJs.includes('getCurrentGroup'), 'popup asks the tab for the open group');
-assert(popupJs.includes('adoptOpenGroup'), 'popup adds the open group without a click');
+assert(!popupJs.includes('adoptOpenGroup'), 'popup does not add the open group by itself');
 assert(popupJs.includes('resolveGroupName'), 'popup looks up a group name from a link');
 
 const mock = readFileSync(join(root, 'test/mock-share.html'), 'utf8');
